@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fit</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fit">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1F3A5F">
+<meta name="robots" content="noindex">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="fit-icon-512.png">
+<style>
+  :root {
+    --bg: #f3f4f7; --card: #ffffff; --ink: #1a1a2e; --muted: #6b7080; --line: #e3e5ec;
+    --brand: #1F3A5F; --accent: #1b5e20; --accent-ink: #ffffff; --chip: #eef0f5;
+    --warn-bg: #fff4e5; --warn-ink: #8a4b00; --sel: #1F3A5F; --sel-ink: #ffffff;
+    --orange: #E8572A; --sand: #F2C14E; --teal: #7FD1B9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1117; --card: #191c25; --ink: #eceef4; --muted: #9aa0b0; --line: #2a2e3a;
+      --brand: #142840; --accent: #2e7d32; --chip: #232734;
+      --warn-bg: #3a2a10; --warn-ink: #ffcf8a; --sel: #eceef4; --sel-ink: #0f1117;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
+  button { touch-action: manipulation; }
+  .top { position: sticky; top: 0; z-index: 5; background: var(--brand); color: #fff;
+    padding: calc(10px + env(safe-area-inset-top)) 16px 12px; }
+  .brandrow { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .brandrow img { width: 22px; height: 22px; border-radius: 6px; }
+  .brandrow b { font-size: 15px; letter-spacing: .04em; }
+  .datebar { display: flex; gap: 8px; align-items: center; }
+  .datebar button { width: 44px; height: 44px; border: 0; border-radius: 10px; background: rgba(255,255,255,.12);
+    color: #fff; font-size: 24px; line-height: 1; }
+  .datebar button:disabled { opacity: .3; }
+  .datebar input { flex: 1; height: 44px; border: 0; border-radius: 10px; padding: 0 12px; font-size: 16px;
+    background: rgba(255,255,255,.12); color: #fff; color-scheme: dark; }
+  .datebar .today { width: auto; padding: 0 12px; font-size: 14px; font-weight: 600; }
+  #dateLabel { margin-top: 8px; font-size: 20px; font-weight: 700; }
+
+  main { padding: 12px 12px 110px; max-width: 640px; margin: 0 auto; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .card h2 { margin: 0 0 10px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .wname { font-size: 19px; font-weight: 700; margin: 2px 0 6px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 3px 10px; font-size: 13px; color: var(--muted); }
+  .chip.mode { background: var(--warn-bg); color: var(--warn-ink); font-weight: 600; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 14px; padding: 4px 0; }
+  .presc { font-size: 14px; color: var(--ink); white-space: pre-wrap; margin-top: 6px; }
+  .targets { font-size: 14px; font-weight: 600; margin-top: 8px; }
+  .banner { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 10px 12px; font-size: 14px; margin-bottom: 12px; }
+
+  label.f { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
+  input.t, select.t, textarea.t { width: 100%; font-size: 16px; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  input, select, textarea, button { font-family: inherit; }
+  textarea.t { min-height: 70px; resize: vertical; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .rpe { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .opt { min-height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg);
+    color: var(--ink); font-size: 15px; font-weight: 600; }
+  .opt.on { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); }
+
+  .ex { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+  .ex:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+  .exname { font-weight: 700; }
+  .extarget { font-size: 13px; color: var(--muted); margin: 2px 0 8px; }
+  .sets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 6px; }
+  .sets input { width: 100%; font-size: 16px; padding: 10px 6px; text-align: center; border-radius: 10px;
+    border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+  .link { background: none; border: 0; color: var(--accent); font-size: 15px; font-weight: 600; padding: 10px 0; }
+  @media (prefers-color-scheme: dark) { .link { color: #7bc67e; } }
+
+  .savebar { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: linear-gradient(to top, var(--bg) 70%, transparent); display: none; }
+  .savebar button { display: block; width: 100%; max-width: 640px; margin: 0 auto; min-height: 52px; border: 0; border-radius: 14px;
+    background: var(--accent); color: var(--accent-ink); font-size: 17px; font-weight: 700; }
+  .savebar button:disabled { opacity: .5; }
+  #toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: var(--ink); color: var(--bg);
+    padding: 10px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none;
+    max-width: 90vw; text-align: center; z-index: 10; }
+  #toast.show { opacity: 1; }
+  #sync { position: fixed; top: calc(14px + env(safe-area-inset-top)); right: 16px; z-index: 6; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--sand); opacity: 0; transition: opacity .2s; }
+  #sync.on { opacity: 1; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: .3; } }
+  .loading { text-align: center; color: var(--muted); padding: 40px 0; }
+  .muted { color: var(--muted); font-size: 14px; }
+
+  .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 10px; }
+  .tabs button { height: 36px; border: 0; border-radius: 10px; background: rgba(255,255,255,.12); color: #fff; font-weight: 700; font-size: 14px; }
+  .tabs button.on { background: var(--sand); color: #1F3A5F; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .tile { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; }
+  .tile .lbl { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .tile .val { font-size: 26px; font-weight: 800; margin-top: 2px; line-height: 1.1; }
+  .tile .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .good { color: #2e7d32; } @media (prefers-color-scheme: dark) { .good { color: #7bc67e; } }
+  .badge { display: inline-block; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 700; margin-right: 6px; }
+  .badge.key { background: var(--sand); color: #1F3A5F; }
+  .badge.mode { background: var(--warn-bg); color: var(--warn-ink); }
+  .badge.team { background: var(--teal); color: #10322a; }
+  .toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 10px 0; }
+  .toggle button { min-height: 40px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); font-weight: 700; }
+  .toggle button.on { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); }
+  .toggle.team button.on { background: #2E7D6B; color: #fff; border-color: #2E7D6B; }
+  .acts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px; }
+  .acts button, .bigbtn { min-height: 48px; border: 0; border-radius: 12px; font-weight: 800; font-size: 15px; }
+  .acts button:active, .bigbtn:active, .toggle button:active { transform: scale(.97); }
+  .acts .full { background: #1b5e20; color: #fff; } .acts .clutch { background: var(--orange); color: #fff; } .acts .skip { background: var(--chip); color: var(--ink); }
+  .bigbtn { width: 100%; background: var(--chip); color: var(--ink); }
+  .bigbtn.on { background: #2E7D6B; color: #fff; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row > * { flex: 1; }
+  .play { display: block; text-align: center; text-decoration: none; min-height: 48px; line-height: 48px; border-radius: 12px; background: #c62828; color: #fff; font-weight: 800; }
+  .week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .wd { text-align: center; border-radius: 10px; padding: 6px 0; background: var(--bg); border: 1px solid var(--line); font-size: 12px; }
+  .wd.today { border-color: var(--ink); }
+  .wd.sel { background: var(--chip); }
+  .wd .n { font-weight: 800; font-size: 15px; }
+  .wd .i { font-size: 16px; margin-top: 2px; }
+  .done-line { margin-top: 8px; font-weight: 700; }
+  .smalllink { background: none; border: 0; color: var(--muted); font-size: 13px; text-decoration: underline; padding: 6px 0; }
+  .teamlink { background: none; border: 0; color: #2E7D6B; font-size: 15px; font-weight: 700; padding: 10px 0 2px; }
+  @media (prefers-color-scheme: dark) { .teamlink { color: var(--teal); } }
+</style>
+</head>
+<body>
+  <header class="top">
+    <div class="brandrow"><img src="apple-touch-icon.png" alt=""><b>Fit</b></div>
+    <div class="tabs"><button id="tabHome" class="on">Today</button><button id="tabLog">Details / Log</button></div>
+    <div class="datebar" id="datebar" style="display:none">
+      <button id="prev" aria-label="Previous day">‹</button>
+      <input type="date" id="date" aria-label="Date">
+      <button id="next" aria-label="Next day">›</button>
+      <button id="todayBtn" class="today">Today</button>
+    </div>
+    <div id="dateLabel">&nbsp;</div>
+  </header>
+  <div id="sync" aria-hidden="true"></div>
+
+  <main id="app"><div class="loading">Loading…</div></main>
+
+  <div class="savebar"><button id="save" disabled>Save</button></div>
+  <div id="toast" role="status"></div>
+
+<script>
+// ── Settings: paste your Apps Script web app URL (Deploy → Manage deployments → Web app URL) ──
+const EXEC_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';
+
+// ── App key: comes in once on the link (?k=…) and is remembered on this phone ──
+const QS = new URLSearchParams(location.search);
+const TOKEN = (() => {
+  const k = QS.get('k');
+  try { if (k) localStorage.setItem('fit.k', k); return k || localStorage.getItem('fit.k') || ''; } catch (e) { return k || ''; }
+})();
+const INITIAL_DATE = /^\d{4}-\d{2}-\d{2}$/.test(QS.get('date') || '') ? QS.get('date') : '';
+const INITIAL_VIEW = QS.get('view') === 'log' || INITIAL_DATE ? 'log' : 'home';
+
+let view = 'home', home = null, homeMode = 'full', homeModeFor = '';
+let jointMode = 'together', jointModeFor = '';
+let day = null, dirty = false, busy = false;
+let form = {};
+let pending = 0, queue = Promise.resolve();
+
+const $ = s => document.querySelector(s);
+function el(tag, props, kids) {
+  const n = document.createElement(tag);
+  Object.entries(props || {}).forEach(([k, v]) => {
+    if (k === 'text') n.textContent = v;
+    else if (k === 'class') n.className = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v);
+  });
+  (kids || []).forEach(c => c && n.appendChild(c));
+  return n;
+}
+function toast(msg, ms) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), ms || 2000);
+}
+function syncDot() { $('#sync').classList.toggle('on', pending > 0); }
+function shift(ymd, n) {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const dt = new Date(y, m - 1, d + n);
+  return dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+}
+function todayYmd() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function markDirty() { dirty = true; }
+const clone = o => JSON.parse(JSON.stringify(o));
+const isSolo = notes => /\[solo\]/i.test(notes || '');
+
+// ── Talking to Apps Script ──
+async function api(name, opts) {
+  opts = opts || {};
+  if (!TOKEN) throw new Error('Missing app key — open the link from your Fit email once.');
+  let res;
+  if (opts.body !== undefined) {
+    res = await fetch(EXEC_URL, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ api: name, k: TOKEN, date: opts.date || '', p: opts.body }) });
+  } else {
+    const u = new URL(EXEC_URL);
+    u.searchParams.set('api', name); u.searchParams.set('k', TOKEN);
+    if (opts.date !== undefined) u.searchParams.set('date', opts.date);
+    u.searchParams.set('_', Date.now());
+    res = await fetch(u.toString(), { redirect: 'follow' });
+  }
+  const j = await res.json();
+  if (j && j.error) throw new Error(j.error);
+  return j;
+}
+
+// Changes run one at a time in the background; the screen has already updated
+function enqueue(task) {
+  pending++; syncDot();
+  const run = queue.then(task);
+  queue = run.catch(() => {});
+  return run.finally(() => { pending--; syncDot(); });
+}
+
+function saveHomeCache(h) { try { if (h && h.isToday) localStorage.setItem('fit.home', JSON.stringify(h)); } catch (e) {} }
+function readHomeCache() {
+  try { const h = JSON.parse(localStorage.getItem('fit.home') || 'null'); return h && h.date === todayYmd() ? h : null; } catch (e) { return null; }
+}
+
+// ── Details / Log view ──
+function load(dateStr) {
+  if (dirty && day && !confirm('You have unsaved changes. Leave this day anyway?')) { $('#date').value = day.date; return; }
+  setView('log');
+  dirty = false;
+  $('#app').innerHTML = '<div class="loading">Loading…</div>';
+  $('#save').disabled = true;
+  api('day', { date: dateStr || '' }).then(render).catch(e => {
+    $('#app').innerHTML = ''; $('#app').appendChild(el('div', { class: 'banner', text: 'Couldn\'t load: ' + e.message }));
+  });
+}
+
+function input(type, value, attrs) {
+  const n = el('input', Object.assign({ class: 't', type: type }, attrs || {}));
+  n.value = value === undefined || value === null ? '' : value;
+  n.addEventListener('input', markDirty);
+  return n;
+}
+
+function choiceGroup(cls, options, current, onPick) {
+  const wrap = el('div', { class: cls });
+  options.forEach(o => {
+    const b = el('button', { class: 'opt' + (String(o) === String(current) ? ' on' : ''), type: 'button', text: String(o) });
+    b.addEventListener('click', () => {
+      wrap.querySelectorAll('.opt').forEach(x => x.classList.remove('on'));
+      b.classList.add('on'); onPick(o); markDirty();
+    });
+    wrap.appendChild(b);
+  });
+  return wrap;
+}
+
+function render(d) {
+  day = d; dirty = false;
+  const ex = d.existing || {};
+  const w = d.workout;
+  form = {
+    status: ex.status || 'Completed',
+    rpe: ex.rpe || '',
+    exercises: d.exercises.map(e => ({ exercise: e.exercise, target: e.target, notes: e.notes, sets: e.sets.slice() })),
+  };
+
+  $('#date').value = d.date; $('#date').min = d.minDate; $('#date').max = d.today;
+  $('#next').disabled = d.date >= d.today;
+  $('#prev').disabled = d.date <= d.minDate;
+  $('#dateLabel').textContent = d.dateLabel + (d.date === d.today ? ' · Today' : '');
+
+  const app = $('#app'); app.innerHTML = '';
+  if (d.existing) app.appendChild(el('div', { class: 'banner', text: 'Already logged — saving will update this entry.' }));
+
+  const wc = el('section', { class: 'card' }, [el('h2', { text: 'Workout' })]);
+  if (w) {
+    wc.appendChild(el('div', { class: 'wname', text: w.name }));
+    const chips = el('div', { class: 'chips' });
+    [w.sport, w.phase, w.plannedMin ? w.plannedMin + ' min' : '', w.intensity].filter(Boolean)
+      .forEach(c => chips.appendChild(el('span', { class: 'chip', text: c })));
+    if (w.mode && w.mode !== 'Standard') chips.appendChild(el('span', { class: 'chip mode', text: w.mode }));
+    wc.appendChild(chips);
+    if (w.description || w.targets) {
+      const det = el('details', {}, [el('summary', { text: 'Prescription' })]);
+      if (w.description) det.appendChild(el('div', { class: 'presc', text: w.description }));
+      if (w.targets) det.appendChild(el('div', { class: 'targets', text: '🎯 ' + w.targets }));
+      if (w.clutch) det.appendChild(el('div', { class: 'presc', text: '⚡ Clutch (' + w.clutch.duration + ' min): ' + w.clutch.description }));
+      wc.appendChild(det);
+    }
+  } else {
+    wc.appendChild(el('div', { class: 'muted', text: 'Nothing scheduled. Log whatever you did.' }));
+    form.nameInput = input('text', 'Manual Entry', { 'aria-label': 'Workout name' });
+    form.sportInput = el('select', { class: 't', 'aria-label': 'Sport' });
+    ['Run', 'Bike', 'Strength', 'HYROX', 'Swim', 'Recovery', 'Other']
+      .forEach(s => form.sportInput.appendChild(el('option', { value: s, text: s })));
+    form.sportInput.addEventListener('change', markDirty);
+    wc.appendChild(el('label', { class: 'f', text: 'Name' })); wc.appendChild(form.nameInput);
+    wc.appendChild(el('label', { class: 'f', text: 'Sport' })); wc.appendChild(form.sportInput);
+  }
+  app.appendChild(wc);
+
+  const sc = el('section', { class: 'card' }, [el('h2', { text: 'Session' })]);
+  sc.appendChild(choiceGroup('seg', ['Completed', 'Clutch', 'Partial', 'Skipped'], form.status, v => form.status = v));
+  form.actualMin = input('number', ex.actualMin !== undefined && ex.actualMin !== '' ? ex.actualMin : (w && w.plannedMin) || '', { inputmode: 'numeric', min: '0' });
+  sc.appendChild(el('label', { class: 'f', text: 'Actual minutes' })); sc.appendChild(form.actualMin);
+  sc.appendChild(el('label', { class: 'f', text: 'RPE (how hard, 1–10)' }));
+  sc.appendChild(choiceGroup('rpe', [1,2,3,4,5,6,7,8,9,10], form.rpe, v => form.rpe = v));
+  form.notes = el('textarea', { class: 't', placeholder: 'How it felt, anything notable' });
+  form.notes.value = ex.notes || ''; form.notes.addEventListener('input', markDirty);
+  sc.appendChild(el('label', { class: 'f', text: 'Notes' })); sc.appendChild(form.notes);
+  app.appendChild(sc);
+
+  const cc = el('section', { class: 'card' }, [el('h2', { text: 'Run / bike details' })]);
+  form.distance = input('number', ex.distance, { inputmode: 'decimal', step: '0.01', placeholder: 'mi' });
+  form.pace = input('text', ex.pace, { placeholder: '8:30', inputmode: 'text', autocomplete: 'off' });
+  form.avgHr = input('number', ex.avgHr, { inputmode: 'numeric', placeholder: 'bpm' });
+  const grid = el('div', { class: 'row3' }, [
+    el('div', {}, [el('label', { class: 'f', text: 'Distance' }), form.distance]),
+    el('div', {}, [el('label', { class: 'f', text: 'Avg pace' }), form.pace]),
+    el('div', {}, [el('label', { class: 'f', text: 'Avg HR' }), form.avgHr]),
+  ]);
+  const hasCardio = d.showCardio || ex.distance || ex.pace || ex.avgHr;
+  if (hasCardio) cc.appendChild(grid);
+  else cc.appendChild(el('details', {}, [el('summary', { text: 'Add distance, pace, HR' }), grid]));
+  app.appendChild(cc);
+
+  const ec = el('section', { class: 'card' }, [el('h2', { text: 'Exercises & sets' })]);
+  const exList = el('div');
+  const isStation = w && w.sport === 'HYROX';
+  function addExercise(e, editableName) {
+    const box = el('div', { class: 'ex' });
+    if (editableName) {
+      const n = input('text', e.exercise, { placeholder: 'Exercise name' });
+      n.addEventListener('input', () => e.exercise = n.value);
+      box.appendChild(n);
+      box.appendChild(el('div', { style: 'height:6px' }));
+    } else {
+      box.appendChild(el('div', { class: 'exname', text: e.exercise }));
+      if (e.target) box.appendChild(el('div', { class: 'extarget', text: e.target }));
+    }
+    const sets = el('div', { class: 'sets' });
+    e.sets.forEach((v, i) => {
+      const s = el('input', { type: 'text', placeholder: isStation ? (i === 0 ? 'time' : '') : 'lbs×reps', 'aria-label': 'Set ' + (i + 1) });
+      s.value = v || '';
+      s.addEventListener('input', () => { e.sets[i] = s.value; markDirty(); });
+      sets.appendChild(s);
+    });
+    box.appendChild(sets);
+    const n = input('text', e.notes, { placeholder: 'Notes' });
+    n.addEventListener('input', () => e.notes = n.value);
+    box.appendChild(n);
+    exList.appendChild(box);
+  }
+  form.exercises.forEach(e => addExercise(e, false));
+  if (!form.exercises.length) ec.appendChild(el('div', { class: 'muted', text: 'No sets prescribed today — add any you did.' }));
+  ec.appendChild(exList);
+  ec.appendChild(el('button', { class: 'link', type: 'button', text: '+ Add exercise', onclick: () => {
+    const e = { exercise: '', target: '', notes: '', sets: ['', '', '', ''] };
+    form.exercises.push(e); addExercise(e, true); markDirty();
+  } }));
+  app.appendChild(ec);
+
+  form.ltHr = input('number', d.lt.hr, { inputmode: 'numeric', placeholder: 'bpm' });
+  form.ltPace = input('text', d.lt.pace, { placeholder: '7:28', autocomplete: 'off' });
+  const ltGrid = el('div', { class: 'row2' }, [
+    el('div', {}, [el('label', { class: 'f', text: 'Avg HR (last 20 min)' }), form.ltHr]),
+    el('div', {}, [el('label', { class: 'f', text: 'Avg pace (last 20 min)' }), form.ltPace]),
+  ]);
+  const lc = el('section', { class: 'card' }, [el('h2', { text: '🔬 LT test result' })]);
+  if (d.isLT || d.lt.hr || d.lt.pace) {
+    lc.appendChild(el('div', { class: 'muted', text: 'Saving updates your zones and every workout target automatically.' }));
+    lc.appendChild(ltGrid);
+  } else {
+    lc.appendChild(el('details', {}, [el('summary', { text: 'Log an LT test for this day' }), ltGrid]));
+  }
+  app.appendChild(lc);
+
+  const bc = el('section', { class: 'card' }, [el('h2', { text: '🏆 Benchmark / PR' })]);
+  form.bKey = el('select', { class: 't', 'aria-label': 'Benchmark' }, [el('option', { value: '', text: '— none —' })]);
+  d.benchmarks.forEach(b => form.bKey.appendChild(el('option', { value: b.key, text: b.label })));
+  const bFields = el('div');
+  form.bKey.addEventListener('change', () => {
+    markDirty(); bFields.innerHTML = '';
+    const b = d.benchmarks.find(x => x.key === form.bKey.value);
+    form.b1 = form.b2 = null;
+    if (!b) return;
+    const L = { lift: ['Weight (lbs)', 'Reps'], pullup: ['Reps', 'Added lbs (0 if none)'], carry: ['lbs per hand', 'Distance (m)'],
+                time: ['Time (m:ss)'], count: ['Reps'], watts: ['Watts'] }[b.type];
+    form.b1 = input(b.type === 'time' ? 'text' : 'number', '', { inputmode: b.type === 'time' ? 'text' : 'decimal', placeholder: b.type === 'time' ? '4:32' : '' });
+    const cells = [el('div', {}, [el('label', { class: 'f', text: L[0] }), form.b1])];
+    if (L[1]) { form.b2 = input('number', '', { inputmode: 'decimal' }); cells.push(el('div', {}, [el('label', { class: 'f', text: L[1] }), form.b2])); }
+    bFields.appendChild(el('div', { class: L[1] ? 'row2' : '' }, cells));
+  });
+  bc.appendChild(el('details', {}, [el('summary', { text: 'Log a lift, station time or test' }), form.bKey, bFields]));
+  app.appendChild(bc);
+
+  $('#save').disabled = false;
+}
+
+const PACE = /^\d{1,2}:\d{2}$/;
+
+function collect() {
+  const w = day.workout;
+  const p = {
+    date: day.date,
+    workoutName: w ? w.name : (form.nameInput.value.trim() || 'Manual Entry'),
+    sport: w ? w.sport : form.sportInput.value,
+    phase: w ? w.phase : '',
+    plannedMin: w ? w.plannedMin : '',
+    actualMin: form.actualMin.value,
+    status: form.status,
+    rpe: form.rpe,
+    notes: form.notes.value.trim(),
+    distance: form.distance.value,
+    pace: form.pace.value.trim(),
+    avgHr: form.avgHr.value,
+    sets: form.exercises.filter(e => e.exercise.trim()),
+    lt: { hr: form.ltHr.value, pace: form.ltPace.value.trim() },
+    benchmark: form.bKey.value ? { key: form.bKey.value, v1: form.b1 ? form.b1.value.trim() : '', v2: form.b2 ? form.b2.value : '' } : null,
+  };
+  if (p.pace && !PACE.test(p.pace)) throw new Error('Avg pace should look like 8:30.');
+  if (p.lt.pace && !PACE.test(p.lt.pace)) throw new Error('LT pace should look like 7:28.');
+  if (p.lt.pace && !p.lt.hr || p.lt.hr && !p.lt.pace) throw new Error('LT test needs both Avg HR and Avg pace.');
+  if (p.benchmark && !p.benchmark.v1) throw new Error('Fill in the benchmark value, or set it back to "none".');
+  return p;
+}
+
+function save() {
+  if (busy) return;
+  let p;
+  try { p = collect(); } catch (e) { toast(e.message, 3500); return; }
+  busy = true; $('#save').disabled = true; $('#save').textContent = 'Saving…';
+  api('save', { body: p }).then(r => {
+    busy = false; dirty = false; $('#save').textContent = 'Save';
+    toast(r.updated ? 'Updated ✓' : 'Saved ✓');
+    loadHome(day.date, false);
+  }).catch(e => {
+    busy = false; $('#save').disabled = false; $('#save').textContent = 'Save';
+    toast('Not saved: ' + e.message, 4500);
+  });
+}
+
+// ── Today view ──
+function setView(v) {
+  view = v;
+  $('#tabHome').classList.toggle('on', v === 'home');
+  $('#tabLog').classList.toggle('on', v === 'log');
+  $('#datebar').style.display = v === 'log' ? 'flex' : 'none';
+  $('.savebar').style.display = v === 'log' ? 'block' : 'none';
+}
+
+function loadHome(dateStr, withSync) {
+  if (dirty && !confirm('You have unsaved changes. Leave anyway?')) return;
+  dirty = false; setView('home');
+  if (!dateStr && !home) { const c = readHomeCache(); if (c) renderHome(c); }
+  if (!home) $('#app').innerHTML = '<div class="loading">Loading…</div>';
+  pending++; syncDot();
+  api('home', { date: dateStr || '' }).then(h => {
+    if (view === 'home' && pending === 1) renderHome(h);
+    saveHomeCache(h);
+    if (withSync) {
+      pending++; syncDot();
+      api('sync', { date: h.date }).then(h2 => {
+        if (view === 'home' && pending === 1 && home && home.date === h2.date) renderHome(h2);
+        saveHomeCache(h2);
+        if (h2.sync && (h2.sync.added || h2.sync.updated)) toast('⌚ Garmin synced');
+      }).catch(() => {}).finally(() => { pending--; syncDot(); });
+    }
+  }).catch(e => {
+    if (!home) { $('#app').innerHTML = ''; $('#app').appendChild(el('div', { class: 'banner', text: 'Couldn\'t load: ' + e.message })); }
+    else toast('Offline — showing your last update', 3000);
+  }).finally(() => { pending--; syncDot(); });
+}
+
+// Optimistic change: update the screen now, save in the background, undo if the save fails
+function act(apiName, body, msg, change) {
+  const before = clone(home);
+  if (change) { change(home); recountTeam(home); renderHome(home); }
+  toast(msg || 'Saved ✓', 1400);
+  enqueue(() => api(apiName, { body: body })).then(h => {
+    if (pending === 0 && view === 'home' && home && h.date === home.date) renderHome(h);
+    saveHomeCache(h);
+  }).catch(e => {
+    home = before; renderHome(home);
+    toast('Not saved — ' + e.message, 4500);
+  });
+}
+
+function recountTeam(h) {
+  const t = h.scorecard.team;
+  t.count = (t.pilates ? 1 : 0) + (t.joint ? 1 : 0);
+}
+function inThisWeek(h, ymd) { return h.week.some(d => d.date === ymd) && h.week.some(d => d.isToday); }
+
+function quick(kind) {
+  const h = home, w = h.workout;
+  const label = { full: 'Full ✓', clutch: 'Clutch ✓ — counts as done', skipped: 'Logged as skipped' }[kind];
+  const body = { date: h.date, kind: kind };
+  if (h.team.isJointDay && kind !== 'skipped') body.mode = jointMode;
+  act('quick', body, label, x => {
+    const status = { full: 'Completed', clutch: 'Clutch', skipped: 'Skipped' }[kind];
+    const mins = kind === 'full' ? w.minutes : kind === 'clutch' && w.clutch ? w.clutch.duration : 0;
+    const prevNotes = x.logged ? String(x.logged.notes || '').replace(/\s*\[solo\]\s*/ig, ' ').trim() : '';
+    const notes = body.mode === 'solo' ? ('[Solo] ' + prevNotes).trim() : prevNotes;
+    x.logged = Object.assign({ source: 'Phone', rpe: '' }, x.logged || {}, { status: status, actualMin: x.logged && x.logged.source === 'Garmin' ? x.logged.actualMin : mins, notes: notes });
+    const d = x.week.find(d => d.date === x.date);
+    if (d) d.status = kind === 'full' ? 'completed' : kind === 'clutch' ? 'clutch' : 'skipped';
+    const k = x.scorecard.keys.list.find(k => k.date === x.date);
+    if (k) { k.done = kind !== 'skipped'; x.scorecard.keys.done = x.scorecard.keys.list.filter(k => k.done).length; }
+    if (x.team.isJointDay && inThisWeek(x, x.date)) x.scorecard.team.joint = kind !== 'skipped' && body.mode !== 'solo';
+  });
+}
+
+function setJointMode(mode) {
+  jointMode = mode; jointModeFor = home.date;
+  if (home.logged && !/Skipped/.test(home.logged.status)) {
+    act('mode', { date: home.date, mode: mode }, mode === 'solo' ? 'Solo — counts for you' : 'Together ✓ — Team', x => {
+      const clean = String(x.logged.notes || '').replace(/\s*\[solo\]\s*/ig, ' ').trim();
+      x.logged.notes = mode === 'solo' ? ('[Solo] ' + clean).trim() : clean;
+      if (inThisWeek(x, x.date)) x.scorecard.team.joint = mode !== 'solo';
+    });
+  } else {
+    renderHome(home);
+  }
+}
+
+function togglePilates() {
+  const was = home.team.pilatesDone;
+  act('quick', { date: home.date, kind: 'pilates' }, was ? 'Pilates un-checked' : 'Ari\'s Pilates ✓', x => {
+    x.team.pilatesDone = !was;
+    if (inThisWeek(x, x.date)) x.scorecard.team.pilates = !was;
+  });
+}
+
+function tile(lbl, val, sub, cls) {
+  return el('div', { class: 'tile' }, [el('div', { class: 'lbl', text: lbl }), el('div', { class: 'val ' + (cls || ''), text: val }), sub ? el('div', { class: 'sub', text: sub }) : null]);
+}
+
+function renderHome(h) {
+  home = h;
+  $('#dateLabel').textContent = h.dateLabel + (h.isToday ? ' · Today' : '');
+  const app = $('#app'); app.innerHTML = '';
+  const s = h.scorecard;
+
+  app.appendChild(el('div', { class: 'tiles' }, [
+    tile('Marathon est.', s.predicted ? s.predicted.value : '—', s.predicted ? s.predicted.range + ' · goal 3:20' : 'Needs an LT test', s.predicted && s.predicted.onTrack ? 'good' : ''),
+    tile('Consistency', s.consistency.pct + '%', '🔥 ' + s.consistency.streak + '-day streak'),
+    tile('Key sessions', s.keys.done + '/' + s.keys.total, s.keys.list.map(k => k.day + (k.done ? ' ✓' : '')).join(' · ') || 'this week'),
+    tile('Team', s.team.count + '/2', (s.team.pilates ? 'Pilates ✓ · ' : 'Pilates · ') + (s.team.joint ? 'Lift ✓' : 'Lift') + (s.team.streak ? ' · ' + s.team.streak + ' wk' : '')),
+  ]));
+
+  h.missedKeys.forEach(m => {
+    app.appendChild(el('section', { class: 'card' }, [
+      el('div', { class: 'banner', text: '🔁 Missed ' + m.day + ': ' + m.name }),
+      el('button', { class: 'bigbtn on', type: 'button', text: 'Move to ' + m.toLabel, onclick: () =>
+        act('move', { from: m.date, to: m.to }, 'Moved ✓', x => { x.missedKeys = x.missedKeys.filter(z => z.date !== m.date); }) }),
+    ]));
+  });
+
+  const w = h.workout;
+  const wc = el('section', { class: 'card' }, [el('h2', { text: h.isToday ? 'Today' : h.dateLabel })]);
+  if (w) {
+    const badges = el('div', {});
+    if (w.isKey) badges.appendChild(el('span', { class: 'badge key', text: '🔑 KEY' }));
+    if (h.team.isJointDay) badges.appendChild(el('span', { class: 'badge team', text: '👫 With Ari' }));
+    if (w.mode && w.mode !== 'Standard' && !/KEY SESSION/.test(w.mode)) badges.appendChild(el('span', { class: 'badge mode', text: w.mode }));
+    wc.appendChild(badges);
+    wc.appendChild(el('div', { class: 'wname', text: w.name }));
+    if (w.isOff) {
+      wc.appendChild(el('div', { class: 'muted', text: w.description }));
+    } else {
+      // Sunday lift: Together | Solo
+      if (h.team.isJointDay) {
+        if (jointModeFor !== h.date) { jointModeFor = h.date; jointMode = h.logged && isSolo(h.logged.notes) ? 'solo' : 'together'; }
+        wc.appendChild(el('div', { class: 'toggle team' }, [
+          el('button', { type: 'button', class: jointMode === 'together' ? 'on' : '', text: '👫 Together', onclick: () => setJointMode('together') }),
+          el('button', { type: 'button', class: jointMode === 'solo' ? 'on' : '', text: '🧍 Solo', onclick: () => setJointMode('solo') }),
+        ]));
+        wc.appendChild(el('div', { class: 'muted', text: jointMode === 'together'
+          ? 'Counts for you and the Team tile.' : 'Same session at your pace — counts for you, not the Team tile.' }));
+      }
+      if (w.clutch) {
+        if (homeModeFor !== h.date) { homeModeFor = h.date; homeMode = (w.clutchSuggested || (h.logged && /Clutch/.test(h.logged.status))) ? 'clutch' : 'full'; }
+        wc.appendChild(el('div', { class: 'toggle' }, [
+          el('button', { type: 'button', class: homeMode === 'full' ? 'on' : '', text: 'Full · ' + w.minutes + ' min', onclick: () => { homeMode = 'full'; renderHome(home); } }),
+          el('button', { type: 'button', class: homeMode === 'clutch' ? 'on' : '', text: '⚡ Clutch · ' + w.clutch.duration + ' min', onclick: () => { homeMode = 'clutch'; renderHome(home); } }),
+        ]));
+      }
+      const txt = homeMode === 'clutch' && w.clutch ? w.clutch.description : w.description;
+      wc.appendChild(el('div', { class: 'presc', text: txt }));
+      if (homeMode !== 'clutch' && w.targets) wc.appendChild(el('div', { class: 'targets', text: '🎯 ' + w.targets }));
+      if (h.logged) {
+        const L = h.logged, skipped = /Skipped/.test(L.status);
+        wc.appendChild(el('div', { class: 'done-line ' + (skipped ? '' : 'good'),
+          text: (skipped ? '— Skipped' : '✓ ' + L.status) + (L.actualMin !== '' && L.actualMin !== undefined ? ' · ' + L.actualMin + ' min' : '') +
+                (L.rpe ? ' · RPE ' + L.rpe : '') + (L.source === 'Garmin' ? ' · ⌚' : '') +
+                (h.team.isJointDay && !skipped ? (isSolo(L.notes) ? ' · Solo' : ' · Together') : '') }));
+      }
+      wc.appendChild(el('div', { class: 'acts' }, [
+        el('button', { class: 'full', type: 'button', text: '✓ Full', onclick: () => quick('full') }),
+        el('button', { class: 'clutch', type: 'button', text: '⚡ Clutch', onclick: () => quick('clutch') }),
+        el('button', { class: 'skip', type: 'button', text: 'Skip', onclick: () => quick('skipped') }),
+      ]));
+    }
+  } else {
+    wc.appendChild(el('div', { class: 'muted', text: 'Nothing planned.' }));
+  }
+  app.appendChild(wc);
+
+  const cc = el('section', { class: 'card' }, [el('h2', { text: '🧱 Core · ' + h.core.minutes + ' min' }), el('div', { class: 'wname', text: h.core.title })]);
+  cc.appendChild(el('div', { class: 'row' }, [
+    el('a', { class: 'play', href: h.core.url, target: '_blank', rel: 'noopener', text: '▶ Play' }),
+    el('button', { class: 'bigbtn' + (h.core.done ? ' on' : ''), type: 'button', text: h.core.done ? 'Core ✓' : 'Mark core done',
+      onclick: () => { const was = h.core.done; act('quick', { date: h.date, kind: 'core' }, was ? 'Core un-checked' : 'Core ✓', x => { x.core.done = !was; }); } }),
+  ]));
+  app.appendChild(cc);
+
+  // Team — Ari's Pilates can be logged any day
+  const tc = el('section', { class: 'card' }, [el('h2', { text: '👫 Team' })]);
+  const future = h.date > (h.today || todayYmd());
+  if (h.team.isPilatesDay || h.team.pilatesDone) {
+    tc.appendChild(el('div', { class: 'muted', style: 'margin-bottom:8px', text: h.team.isPilatesDay ? 'Ari\'s Pilates — you\'re on kids.' : 'Ari\'s Pilates logged for this day.' }));
+    if (!future) tc.appendChild(el('button', { class: 'bigbtn' + (h.team.pilatesDone ? ' on' : ''), type: 'button',
+      text: h.team.pilatesDone ? 'She went ✓' : 'She went — mark done', onclick: togglePilates }));
+  } else if (!future) {
+    tc.appendChild(el('button', { class: 'teamlink', type: 'button', text: '+ Log Ari\'s Pilates for this day', onclick: togglePilates }));
+  }
+  if (h.team.isJointDay) tc.appendChild(el('div', { class: 'muted', style: 'margin-top:8px',
+    text: 'Lift together today — log it above with 👫 Together selected.' }));
+  if (future && !h.team.isJointDay && !h.team.isPilatesDay) tc.appendChild(el('div', { class: 'muted', text: 'Nothing planned together this day.' }));
+  app.appendChild(tc);
+
+  const icon = st => ({ completed: '✅', clutch: '⚡', partial: '◐', skipped: '✖️', missed: '⚠️', planned: '·', off: '–' }[st] || '·');
+  const wk = el('div', { class: 'week' });
+  h.week.forEach(d => wk.appendChild(el('div', { class: 'wd' + (d.isToday ? ' today' : '') + (d.date === h.date ? ' sel' : ''), onclick: () => loadHome(d.date) }, [
+    el('div', { text: d.day }), el('div', { class: 'n', text: String(d.num) + (d.isKey ? '🔑' : '') }),
+    el('div', { class: 'i', text: icon(d.status) + (d.coreDone ? '🧱' : '') }),
+  ])));
+  app.appendChild(el('section', { class: 'card' }, [el('h2', { text: 'This week' }), wk]));
+
+  const g = h.garmin;
+  app.appendChild(el('div', { class: 'muted', style: 'text-align:center' }, [
+    el('div', { text: g.connected ? '⌚ Garmin ' + (g.lastSync ? 'synced ' + new Date(g.lastSync).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'not synced yet') : '⌚ Garmin not connected' }),
+    el('button', { class: 'smalllink', type: 'button', text: 'Log sets / notes for this day', onclick: () => load(h.date) }),
+  ]));
+}
+
+$('#tabHome').addEventListener('click', () => loadHome(home ? home.date : '', false));
+$('#tabLog').addEventListener('click', () => load(home ? home.date : ''));
+$('#prev').addEventListener('click', () => day && load(shift(day.date, -1)));
+$('#next').addEventListener('click', () => day && load(shift(day.date, 1)));
+$('#todayBtn').addEventListener('click', () => load(''));
+$('#date').addEventListener('change', e => e.target.value && load(e.target.value));
+$('#save').addEventListener('click', save);
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+// Coming back to the app after a while: refresh today
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && view === 'home' && home && pending === 0 && home.date !== todayYmd()) loadHome('', true);
+});
+
+if (EXEC_URL.indexOf('PASTE_') === 0) {
+  $('#app').innerHTML = '<div class="banner">Setup needed: paste your web app URL into EXEC_URL near the top of index.html.</div>';
+} else if (!TOKEN) {
+  $('#app').innerHTML = '<div class="banner">Open this page once from the link in your “Fit v10” email (it carries your app key).</div>';
+} else if (INITIAL_VIEW === 'log') load(INITIAL_DATE); else loadHome('', true);
+</script>
+</body>
+</html>

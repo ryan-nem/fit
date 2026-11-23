@@ -128,6 +128,15 @@
   .wd .n { font-weight: 800; font-size: 15px; }
   .wd .i { font-size: 16px; margin-top: 2px; }
   .done-line { margin-top: 8px; font-weight: 700; }
+  .weekhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .weekhead h2 { margin: 0; }
+  .weeknav { display: flex; gap: 6px; align-items: center; }
+  .weeknav button { min-width: 40px; height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font-size: 20px; line-height: 1; }
+  .weeknav .thisweek { font-size: 13px; font-weight: 700; padding: 0 10px; }
+  .week { touch-action: pan-y; transition: transform .15s, opacity .15s; }
+  .week.slide-l { transform: translateX(-24px); opacity: .4; }
+  .week.slide-r { transform: translateX(24px); opacity: .4; }
+  .planned-line { margin-top: 10px; font-weight: 700; color: var(--muted); }
   .smalllink { background: none; border: 0; color: var(--muted); font-size: 13px; text-decoration: underline; padding: 6px 0; }
   .teamlink { background: none; border: 0; color: #2E7D6B; font-size: 15px; font-weight: 700; padding: 10px 0 2px; }
   @media (prefers-color-scheme: dark) { .teamlink { color: var(--teal); } }
@@ -155,6 +164,7 @@
 <script>
 // ── Settings: paste your Apps Script web app URL (Deploy → Manage deployments → Web app URL) ──
 const EXEC_URL = 'https://script.google.com/macros/s/AKfycbzKVhtYglqCrJzinuMpDwwbZoNCUrk2-MoVJtPYXqfdzfD606E44gi3xzQwMTQsjA/exec';
+
 // ── App key: comes in once on the link (?k=…) and is remembered on this phone ──
 const QS = new URLSearchParams(location.search);
 const TOKEN = (() => {
@@ -194,6 +204,7 @@ function shift(ymd, n) {
 }
 function todayYmd() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
 function markDirty() { dirty = true; }
+function fmtShort(ymd) { const [y, m, d] = ymd.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString([], { month: 'short', day: 'numeric' }); }
 const clone = o => JSON.parse(JSON.stringify(o));
 const isSolo = notes => /\[solo\]/i.test(notes || '');
 
@@ -604,7 +615,9 @@ function renderHome(h) {
                 (L.rpe ? ' · RPE ' + L.rpe : '') + (L.source === 'Garmin' ? ' · ⌚' : '') +
                 (h.team.isJointDay && !skipped ? (isSolo(L.notes) ? ' · Solo' : ' · Together') : '') }));
       }
-      wc.appendChild(el('div', { class: 'acts' }, [
+      if (h.date > (h.today || todayYmd())) {
+        wc.appendChild(el('div', { class: 'planned-line', text: '🗓 Planned — log it on the day' }));
+      } else wc.appendChild(el('div', { class: 'acts' }, [
         el('button', { class: 'full', type: 'button', text: '✓ Full', onclick: () => quick('full') }),
         el('button', { class: 'clutch', type: 'button', text: '⚡ Clutch', onclick: () => quick('clutch') }),
         el('button', { class: 'skip', type: 'button', text: 'Skip', onclick: () => quick('skipped') }),
@@ -644,7 +657,24 @@ function renderHome(h) {
     el('div', { text: d.day }), el('div', { class: 'n', text: String(d.num) + (d.isKey ? '🔑' : '') }),
     el('div', { class: 'i', text: icon(d.status) + (d.coreDone ? '🧱' : '') }),
   ])));
-  app.appendChild(el('section', { class: 'card' }, [el('h2', { text: 'This week' }), wk]));
+  const curWeek = h.week.some(d => d.isToday);
+  const goWeek = n => { wk.classList.add(n > 0 ? 'slide-l' : 'slide-r'); loadHome(shift(h.date, 7 * n)); };
+  const nav = el('div', { class: 'weeknav' }, [
+    curWeek ? null : el('button', { class: 'thisweek', type: 'button', text: 'Today', onclick: () => loadHome('') }),
+    el('button', { type: 'button', 'aria-label': 'Previous week', text: '‹', onclick: () => goWeek(-1) }),
+    el('button', { type: 'button', 'aria-label': 'Next week', text: '›', onclick: () => goWeek(1) }),
+  ]);
+  const first = h.week[0], last = h.week[h.week.length - 1];
+  const title = curWeek ? 'This week' : (first && last ? fmtShort(first.date) + ' – ' + fmtShort(last.date) : 'Week');
+  let sx = null, sy = null;
+  wk.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  wk.addEventListener('touchend', e => {
+    if (sx === null) return;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    sx = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) goWeek(dx < 0 ? 1 : -1);
+  }, { passive: true });
+  app.appendChild(el('section', { class: 'card' }, [el('div', { class: 'weekhead' }, [el('h2', { text: title }), nav]), wk]));
 
   const g = h.garmin;
   app.appendChild(el('div', { class: 'muted', style: 'text-align:center' }, [
@@ -666,7 +696,7 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && view === 'home' && home && pending === 0 && home.date !== todayYmd()) loadHome('', true);
 });
 
-if (EXEC_URL.indexOf('PASTE_') === 0) {
+if (EXEC_URL.indexOf('PASTE_') !== -1) {
   $('#app').innerHTML = '<div class="banner">Setup needed: paste your web app URL into EXEC_URL near the top of index.html.</div>';
 } else if (!TOKEN) {
   $('#app').innerHTML = '<div class="banner">Open this page once from the link in your “Fit v10” email (it carries your app key).</div>';

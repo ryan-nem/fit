@@ -551,6 +551,11 @@ function togglePilates() {
   });
 }
 
+function skipBtn(m, label, drop) {
+  return el('button', { class: 'bigbtn', type: 'button', text: label, onclick: () =>
+    act('move', { from: m.date, to: m.date, skip: true }, 'OK — card hidden', drop) });
+}
+
 function tile(lbl, val, sub, cls) {
   return el('div', { class: 'tile' }, [el('div', { class: 'lbl', text: lbl }), el('div', { class: 'val ' + (cls || ''), text: val }), sub ? el('div', { class: 'sub', text: sub }) : null]);
 }
@@ -568,13 +573,25 @@ function renderHome(h) {
     tile('Team', s.team.count + '/2', (s.team.pilates ? 'Pilates ✓ · ' : 'Pilates · ') + (s.team.joint ? 'Lift ✓' : 'Lift') + (s.team.streak ? ' · ' + s.team.streak + ' wk' : '')),
   ]));
 
-  h.missedKeys.forEach(m => {
-    app.appendChild(el('section', { class: 'card' }, [
-      el('div', { class: 'banner', text: '🔁 Missed ' + m.day + ': ' + m.name }),
-      el('button', { class: 'bigbtn on', type: 'button', text: 'Move to ' + m.toLabel, onclick: () =>
-        act('move', { from: m.date, to: m.to }, 'Moved ✓', x => { x.missedKeys = x.missedKeys.filter(z => z.date !== m.date); }) }),
-    ]));
+  (h.missedKeys || []).forEach(m => {
+    const drop = x => { x.missedKeys = (x.missedKeys || []).filter(z => z.date !== m.date); };
+    const kids = [el('div', { class: 'banner', text: '🔁 Missed ' + m.day + ': ' + m.name })];
+    if (m.to) {
+      if (m.replaces) kids.push(el('div', { class: 'muted', style: 'margin-bottom:8px', text: 'Replaces ' + m.replaces + (m.toLabel === 'today' ? ' today.' : ' on ' + m.toLabel + '.') }));
+      const move = el('button', { class: 'bigbtn on', type: 'button', text: 'Move to ' + m.toLabel, onclick: () =>
+        act('move', { from: m.date, to: m.to }, 'Moved ✓', x => {
+          drop(x);
+          const d = x.week.find(d => d.date === m.date); if (d) { d.status = 'moved'; d.isKey = false; }
+          const t = x.week.find(d => d.date === m.to); if (t) t.isKey = true;
+        }) });
+      kids.push(h.v11 ? el('div', { class: 'row' }, [move, skipBtn(m, 'Skip', drop)]) : move);
+    } else {
+      kids.push(el('div', { class: 'muted', style: 'margin-bottom:8px', text: m.note || 'No good day left this week.' }));
+      kids.push(skipBtn(m, 'OK — let it go', drop));
+    }
+    app.appendChild(el('section', { class: 'card' }, kids));
   });
+  if (h.movedOut) app.appendChild(el('div', { class: 'banner', text: '↪ This session moved to ' + h.movedOut.toLabel + '.' }));
 
   const w = h.workout;
   const wc = el('section', { class: 'card' }, [el('h2', { text: h.isToday ? 'Today' : h.dateLabel })]);
@@ -651,7 +668,7 @@ function renderHome(h) {
   if (future && !h.team.isJointDay && !h.team.isPilatesDay) tc.appendChild(el('div', { class: 'muted', text: 'Nothing planned together this day.' }));
   app.appendChild(tc);
 
-  const icon = st => ({ completed: '✅', clutch: '⚡', partial: '◐', skipped: '✖️', missed: '⚠️', planned: '·', off: '–' }[st] || '·');
+  const icon = st => ({ completed: '✅', clutch: '⚡', partial: '◐', skipped: '✖️', missed: '⚠️', moved: '↪', planned: '·', off: '–' }[st] || '·');
   const wk = el('div', { class: 'week' });
   h.week.forEach(d => wk.appendChild(el('div', { class: 'wd' + (d.isToday ? ' today' : '') + (d.date === h.date ? ' sel' : ''), onclick: () => loadHome(d.date) }, [
     el('div', { text: d.day }), el('div', { class: 'n', text: String(d.num) + (d.isKey ? '🔑' : '') }),
